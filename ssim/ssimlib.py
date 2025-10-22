@@ -106,8 +106,8 @@ class SSIM(object):
         self.gaussian_kernel_1d = gaussian_kernel_1d
         self.img = SSIMImage(img, gaussian_kernel_1d, size)
 
-    def ssim_value(self, target):
-        """Compute the SSIM value from the reference image to the target image.
+    def ssim_map(self, target):
+        """Compute the SSIM map from the reference image to the target image.
 
         Args:
           target (str or PIL.Image): Input image to compare the reference image
@@ -115,7 +115,7 @@ class SSIM(object):
           object (e.g. the img member of another SSIM object).
 
         Returns:
-          Computed SSIM float value.
+          Computed SSIM map (2D same size as target).
         """
         # Performance boost if handed a compatible SSIMImage object.
         if not isinstance(target, SSIMImage) \
@@ -140,12 +140,25 @@ class SSIM(object):
             (self.img.img_gray_sigma_squared +
              target.img_gray_sigma_squared + self.c_2))
 
-        ssim_map = num_ssim / den_ssim
+        return num_ssim / den_ssim
+
+    def ssim_value(self, target):
+        """Compute the SSIM value from the reference image to the target image.
+
+        Args:
+          target (str or PIL.Image): Input image to compare the reference image
+          to. This may be a PIL Image object or, to save time, an SSIMImage
+          object (e.g. the img member of another SSIM object).
+
+        Returns:
+          Computed SSIM float value.
+        """
+        ssim_map = self.ssim_map(target)
         index = np.average(ssim_map)
         return index
 
-    def cw_ssim_value(self, target, width=30):
-        """Compute the complex wavelet SSIM (CW-SSIM) value from the reference
+    def cw_ssim_map(self, target, width=30):
+        """Compute the complex wavelet SSIM (CW-SSIM) map from the reference
         image to the target image.
 
         Args:
@@ -184,8 +197,22 @@ class SSIM(object):
         den_ssim_2 = 2 * np.sum(np.abs(c1c2_conj), axis=0) + self.k
 
         # Construct the result
-        ssim_map = (num_ssim_1 / den_ssim_1) * (num_ssim_2 / den_ssim_2)
+        return (num_ssim_1 / den_ssim_1) * (num_ssim_2 / den_ssim_2)
 
+    def cw_ssim_value(self, target, width=30):
+        """Compute the complex wavelet SSIM (CW-SSIM) value from the reference
+        image to the target image.
+
+        Args:
+          target (str or PIL.Image): Input image to compare the reference image
+          to. This may be a PIL Image object or, to save time, an SSIMImage
+          object (e.g. the img member of another SSIM object).
+          width: width for the wavelet convolution (default: 30)
+
+        Returns:
+          Computed CW-SSIM float value.
+        """
+        ssim_map = self.cw_ssim_map(target, width)
         # Average the per pixel results
         index = np.average(ssim_map)
         return index
